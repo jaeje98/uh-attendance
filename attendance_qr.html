@@ -1,0 +1,208 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UH Calculus I - Lab32 Attendance</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #fefefe;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #c8102e;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .container {
+      max-width: 700px;
+      margin: 20px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+    button {
+      margin-top: 15px;
+      background-color: #c8102e;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #a50e25;
+    }
+    #qrcode {
+      margin-top: 15px;
+      text-align: center;
+    }
+    table {
+      margin-top: 20px;
+      width: 100%;
+      border-collapse: collapse;
+      background-color: #fff;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+    th {
+      background-color: #c8102e;
+      color: white;
+    }
+    #exportBtn {
+      margin-top: 15px;
+      background-color: #0077cc;
+    }
+  </style>
+</head>
+<body>
+  <header>UH Calculus I - Lab32 Attendance</header>
+  <div class="container">
+    <h2>Instructor Panel</h2>
+    <button id="generateCodeBtn">Generate Session Code & QR</button>
+    <p><strong>Session Code:</strong> <span id="sessionCodeDisplay">Not generated yet</span></p>
+    <div id="qrcode"></div>
+
+    <hr style="margin: 20px 0;">
+
+    <h2>Student Check-In</h2>
+    <label for="sessionCode">Session Code</label>
+    <input type="text" id="sessionCode" placeholder="Enter session code" required />
+
+    <label for="studentName">Full Name</label>
+    <input type="text" id="studentName" placeholder="e.g., John Doe" required />
+
+    <label for="studentId">Student ID</label>
+    <input type="text" id="studentId" placeholder="e.g., 1234567" required />
+
+    <label for="studentEmail">UH Email</label>
+    <input type="email" id="studentEmail" placeholder="e.g., jdoe@uh.edu" />
+
+    <button id="checkInBtn">Check In</button>
+
+    <h3>Attendance List</h3>
+    <table id="attendanceTable">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Student ID</th>
+          <th>Email</th>
+          <th>Check-In Time</th>
+        </tr>
+      </thead>
+      <tbody id="attendanceBody"></tbody>
+    </table>
+
+    <button id="exportBtn">Export to CSV</button>
+  </div>
+
+  <script>
+    const generateCodeBtn = document.getElementById("generateCodeBtn");
+    const sessionCodeDisplay = document.getElementById("sessionCodeDisplay");
+    const qrcodeDiv = document.getElementById("qrcode");
+    const checkInBtn = document.getElementById("checkInBtn");
+    const attendanceBody = document.getElementById("attendanceBody");
+    const exportBtn = document.getElementById("exportBtn");
+
+    let currentSessionCode = "";
+    let attendanceData = [];
+
+    function generateSessionCode() {
+      currentSessionCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      sessionCodeDisplay.textContent = currentSessionCode;
+
+      qrcodeDiv.innerHTML = "";
+      new QRCode(qrcodeDiv, {
+        text: window.location.href + "?code=" + currentSessionCode,
+        width: 150,
+        height: 150,
+      });
+    }
+
+    generateCodeBtn.addEventListener("click", generateSessionCode);
+
+    checkInBtn.addEventListener("click", () => {
+      const enteredCode = document.getElementById("sessionCode").value.trim();
+      const name = document.getElementById("studentName").value.trim();
+      const id = document.getElementById("studentId").value.trim();
+      const email = document.getElementById("studentEmail").value.trim();
+
+      if (!enteredCode || !name || !id) {
+        alert("Please fill in all required fields.");
+        return;
+      }
+
+      if (enteredCode !== currentSessionCode) {
+        alert("Invalid session code.");
+        return;
+      }
+
+      const now = new Date();
+      const time = now.toLocaleString();
+
+      attendanceData.push({ name, id, email, time });
+
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${name}</td>
+        <td>${id}</td>
+        <td>${email}</td>
+        <td>${time}</td>
+      `;
+      attendanceBody.appendChild(row);
+
+      document.getElementById("studentName").value = "";
+      document.getElementById("studentId").value = "";
+      document.getElementById("studentEmail").value = "";
+    });
+
+    exportBtn.addEventListener("click", () => {
+      if (attendanceData.length === 0) {
+        alert("No attendance data to export.");
+        return;
+      }
+
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "Name,Student ID,Email,Check-In Time\n";
+      attendanceData.forEach(row => {
+        csvContent += `${row.name},${row.id},${row.email},${row.time}\n`;
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "UH_Calculus_Lab32_Attendance.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  </script>
+</body>
+</html>
